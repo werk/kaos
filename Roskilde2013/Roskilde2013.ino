@@ -1,9 +1,10 @@
 
 #define SPOT_COUNT 5
-#define PIN_SPOT_OFFSET 6
+#define PIN_SPOT_OFFSET 5
 #define PIN_SPOT_COUNT 3
-#define FLASH 9
-#define LASER 10
+#define FLASH 8
+#define LASER 9
+#define LASER2 10
 #define OUTPUT_PINS 11
 #define BUTTON 12
 
@@ -17,6 +18,7 @@ static int  vuSize = 10;
 // Button mode state
 enum ButtonShortPressMode {
   nextMode,
+  ambientMode,
   beatMode,
   godMode,
   chaosMode
@@ -53,6 +55,7 @@ void setup() {
     }
     randomSeed(analogRead(0));
     nextController();
+    
     //Serial.begin(9600);                
 }
 
@@ -98,7 +101,9 @@ void loop() {
     maxSoundLevel = max(max(maxSoundLevel, 300), soundLevel);
     
     // Call a controller
-    if (shortPressMode != godMode && shortPressMode != chaosMode) {
+    if(shortPressMode == ambientMode) {
+      ambientController();
+    } else if (shortPressMode != godMode && shortPressMode != chaosMode) {
         (*topLevelController)();
     }
     
@@ -133,6 +138,8 @@ void shortPress() {
     if (shortPressMode == nextMode) {
         nextController();
         Serial.println("Next mode");
+    } else if (shortPressMode == ambientMode) {
+        Serial.println("Just chill");
     } else if (shortPressMode == beatMode) {
         Serial.println("Heartbeat");
         beatDuration = time - trackBeatTime;
@@ -163,10 +170,13 @@ void longPress() {
     if (longPresSequence == 1) {
         Serial.println("Next program mode");
         shortPressMode = nextMode;
-    } else if (longPresSequence == 2) {
+    } else if (longPresSequence == 3) {
+        Serial.println("Ambient mode");
+        shortPressMode = ambientMode;
+    } else if (longPresSequence == 3) {
         Serial.println("Human beat box mode");
         shortPressMode = beatMode;
-    } else if (longPresSequence == 3) {
+    } else if (longPresSequence == 4) {
         Serial.println("GOD mode enabled");
         shortPressMode = godMode;
     } else {
@@ -181,14 +191,31 @@ void longPress() {
 void nextController() {
     int n = random(1000);
 
-    if (n < 130) topLevelController = &mixController;
-    else if (n < 260) topLevelController = &whiteChillController;
-    else if (n < 390) topLevelController = &lukeSkywalkerController;
-    else if (n < 500) topLevelController = &crazyShitController;
-    else if (n < 600) topLevelController = &vuController;
-    else if (n < 700) topLevelController = &ballsNLaserController;
-    else if (n < 820) topLevelController = &theWaltsController;
-    else topLevelController = &everybodyLovesBenjaminController;
+    if (n < 130) {
+      Serial.println("mixController");
+      topLevelController = &mixController;
+    } else if (n < 260) {
+      Serial.println("whiteChillController");
+      topLevelController = &whiteChillController;
+    } else if (n < 390) {
+      Serial.println("lukeSkywalkerController");
+      topLevelController = &lukeSkywalkerController;
+    } else if (n < 500) {
+      Serial.println("crazyShitController");
+      topLevelController = &crazyShitController;
+    } else if (n < 600) {
+      Serial.println("vuController");
+      topLevelController = &vuController;
+    } else if (n < 700) {
+      Serial.println("ballsNLaserController");
+      topLevelController = &ballsNLaserController;
+    } else if (n < 820) {
+      Serial.println("theWaltsController");
+      topLevelController = &theWaltsController;
+    } else {
+      Serial.println("everybodyLovesBenjaminController");
+      topLevelController = &everybodyLovesBenjaminController;
+    }
       
     allOn(false);
     setBeat(beat % 4);
@@ -271,6 +298,12 @@ void theWaltsController() {
     if (beat > BEATS_PER_CONTROL) nextController();    
 }
 
+void ambientController() {
+    pinDualSpotWalkController(24);
+    slowPpotWalkController(16);
+    
+}
+
 //
 // ---------- Spot (MR 16) controllers ---------- 
 
@@ -286,6 +319,12 @@ void spotReverseWalkController() {
     }    
 }
 
+void slowPpotWalkController(int slowFactor) {
+    for (int i = 0; i < SPOT_COUNT; i++) {
+        boolean flag = (beat / slowFactor) % SPOT_COUNT == i;
+        pins[i] = flag;
+    }
+}
 
 //
 // ---------- Flash (strobo) controllers ---------- 
@@ -332,6 +371,7 @@ void pinSpotController() {
 
 void laserController() {
     pins[LASER] = true;
+    pins[LASER2] = true;
 }
 
 
